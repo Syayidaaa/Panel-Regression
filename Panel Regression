@@ -1,0 +1,87 @@
+library (plm)
+library(car)
+library(lmtest)
+
+diare<-read.csv("F:/UNIMUS/7-BIOSTATISTIKA/SIAP UAS/diare.csv")
+diare
+
+#set data as panel data
+pdata<-pdata.frame(diare,index=c("id","t"))
+pdata
+
+#pooled OLS estimator (Common Effect)
+pooling<-plm(y~x1+x2, data=diare, model="pooling")
+summary(pooling)
+
+#between estimator
+between<-plm(y~x1+x2, data=diare, model="between")
+summary(between)
+
+#first different estimator
+fdiff<-plm(y~x1+x2, data=diare, model="fd")
+summary(fdiff)
+
+#Fixed Effect or Within Estimator
+fixed<-plm(y~x1+x2, data=diare, model="within")
+summary(fixed)
+
+#Fixed Effect Using Least Square Dummy Variabel (LSDV)
+fixed.dum<-lm(y ~ x1 + x2 + factor(id) - 1, data=diare)
+summary(fixed.dum)
+
+#Random Effect Estimator
+random<-plm(y~x1+x2, data=diare, model="random")
+random<-plm(y~x1+x2, data=diare, index=c("id", "t"), model="random")
+summary(random)
+
+#Lm test for random vs OLS
+plmtest(pooling)
+
+#Lm test for fixed vs OLS  <0.05 means fixed effect model is better than pooling model
+pFtest(fixed, pooling)
+
+#Hausman Test <0.05 means fixed effect model is better than random effect model
+phtest(fixed, random)
+
+#pooled OLS estimator (Common Effect)
+pooling<-plm(y~x1+x2, data=diare, model="pooling")
+summary(pooling)
+#Uji Asumsi Klasik
+#Normality Test
+#Residual
+residual<-as.matrix(resid(pooling))
+residual
+residual(resid(pooling))
+residual_kuadrat<-residual^2
+residual_kuadrat
+#Uji Normalitas kolmogorov-smirnov 
+normality<-ks.test(residual,"pnorm")
+normality
+#abs residual
+abs_residual<-abs(residual)
+abs_residual
+residual_kuadrat<-residual^2
+residual_kuadrat
+#uji glejsermode Heterokedastisitas
+glejser<-lm(abs_residual~x1+x2,data=diare)
+summary(glejser)
+#Autocorrelation
+#Uji VIF (Pooling)
+vif(pooling)
+
+#Homogenity
+plot(diare$x1, diare$x2)
+score.lm<-lm(y~x1+x2,data=diare)
+score.lm
+abline(score.lm,col="blue")
+#obtain the residual squared
+score.resid<- score.lm$residuals^2
+score.resid
+#square the predictor
+X12<-diare$x1^2
+X1<-diare$x1
+X22<-diare$x2^2
+X2<-diare$x2
+#Conduce the Breuch Pagan test for constant variance
+score.bp<-lm(score.resid~X12+X1+X22+X2)
+summary(score.bp)
